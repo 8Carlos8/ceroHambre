@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Models\Alimento;
 use Illuminate\Support\Facades\Route;
+use App\Models\Donante;
+use Illuminate\Support\Facades\Response;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,6 +19,32 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/ver-logo/{id}', function ($id) {
+    $donante = Donante::find($id);
+
+    if (!$donante || !$donante->logo) {
+        abort(404);
+    }
+
+    return Response::make($donante->logo, 200, [
+        'Content-Type' => 'image/png', // por ahora suponemos que es JPEG
+        'Content-Disposition' => 'inline; filename="logo.png"',
+    ]);
+});
+
+Route::get('/ver-foto/{id}', function ($id) {
+    $alimento = Alimento::find($id);
+
+    if (!$alimento || !$alimento->foto) {
+        abort(404);
+    }
+
+    return Response::make($alimento->foto, 200, [
+        'Content-Type' => 'image/png', // por ahora suponemos que es JPEG
+        'Content-Disposition' => 'inline; filename="foto.png"',
+    ]);
 });
 
 Route::get('/dashboard', function () {
