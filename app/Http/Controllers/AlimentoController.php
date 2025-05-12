@@ -130,11 +130,46 @@ class AlimentoController extends Controller
 
         $alimento = Alimento::with('donante')->find($request->input('id'));
 
-        if (!$alimento) {
-            return response()->json(['message' => 'Alimento no encontrado'], 404);
+        // Convertir imagen binaria a base64 si existe
+        $fotoBase64 = $alimento->foto ? base64_encode($alimento->foto) : null;
+
+        // Ocultar campo binario original
+        $alimento->makeHidden('foto');
+
+        return response()->json([
+            'alimento' => $alimento,
+            'foto_base64' => $fotoBase64,
+        ], 200);
+    }
+
+    //Función para ver todos los alimentos del donador
+    public function verAlimentoDonador(Request $request)
+    {
+        //Validar token
+        $token = $request->input('token');
+        $user = $this->getUserByToken($token);
+        $donante = $request->input('id_donante');
+
+        if (!$user) {
+            return response()->json(['message' => 'Token inválido'], 401);
         }
 
-        return response()->json(['alimento' => $alimento], 200);
+        $alimentos = Alimento::with('donante')->where('id_donante', $donante->id)->get();
+
+        if ($alimentos->isEmpty()) {
+            return response()->json(['message' => 'No hay alimentos registrados'], 404);
+        }
+
+        // Mapear alimentos agregando imagen en base64 y ocultando el campo binario original
+        $alimentosFormateados = $alimentos->map(function ($alimento) {
+            $alimento->makeHidden('foto');
+            return [
+                'alimento' => $alimento,
+                'foto_base64' => $alimento->foto ? base64_encode($alimento->foto) : null,
+            ];
+        });
+
+        return response()->json(['alimentos' => $alimentosFormateados], 200);
     }
 
     //Función para ver todos los alimentos
@@ -154,7 +189,16 @@ class AlimentoController extends Controller
             return response()->json(['message' => 'No hay alimentos registrados'], 404);
         }
 
-        return response()->json(['alimentos' => $alimentos], 200);
+        // Mapear alimentos agregando imagen en base64 y ocultando el campo binario original
+        $alimentosFormateados = $alimentos->map(function ($alimento) {
+            $alimento->makeHidden('foto');
+            return [
+                'alimento' => $alimento,
+                'foto_base64' => $alimento->foto ? base64_encode($alimento->foto) : null,
+            ];
+        });
+
+        return response()->json(['alimentos' => $alimentosFormateados], 200);
     }
 
     private function getUserByToken($token)

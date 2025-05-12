@@ -202,9 +202,15 @@ class PedidoController extends Controller
         //Validar token
         $token = $request->input('token');
         $user = $this->getUserByToken($token);
+        $id_usuario = $request->input('id_usuario');
 
         if (!$user) {
             return response()->json(['message' => 'Token inválido'], 401);
+        }
+
+        // Validar si el id_usuario corresponde al usuario autenticado
+        if ($user->id !== (int) $id_usuario) {
+            return response()->json(['message' => 'No autorizado a ver los pedidos de este usuario'], 403);
         }
 
         $pedidos = Pedido::with(['usuario', 'alimento'])->where('id_usuario', $user->id)->get();
