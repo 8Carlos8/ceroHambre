@@ -173,6 +173,8 @@ class PedidoController extends Controller
         if (!$pedido) {
             return response()->json(['message' => 'Pedido no encontrado'], 404);
         }
+        $pedido->alimento->makeHidden('foto');
+        $pedido->usuario->makeHidden(['password', 'remember_token', 'codigo_verificacion', 'email_verified_at']);
 
         return response()->json(['pedido' => $pedido], 200);
     }
@@ -193,11 +195,26 @@ class PedidoController extends Controller
         if ($pedidos->isEmpty()) {
             return response()->json(['message' => 'No hay pedidos registrados'], 404);
         }
+        
+        // Ocultar campos en cada pedido
+        foreach ($pedidos as $pedido) {
+            if ($pedido->alimento) {
+                $pedido->alimento->makeHidden('foto');
+            }
+            if ($pedido->usuario) {
+                $pedido->usuario->makeHidden([
+                    'password',
+                    'remember_token',
+                    'codigo_verificacion',
+                    'email_verified_at'
+                ]);
+            }
+        }
 
         return response()->json(['pedidos' => $pedidos], 200);
     }
 
-    public function verPedidosUsuario(Request $request)
+    public function verPedidoUsuario(Request $request)
     {
         //Validar token
         $token = $request->input('token');
@@ -217,6 +234,21 @@ class PedidoController extends Controller
 
         if ($pedidos->isEmpty()) {
             return response()->json(['message' => 'No hay pedidos registrados para este usuario'], 404);
+        }
+        
+        // Ocultar campos en cada pedido
+        foreach ($pedidos as $pedido) {
+            if ($pedido->alimento) {
+                $pedido->alimento->makeHidden('foto');
+            }
+            if ($pedido->usuario) {
+                $pedido->usuario->makeHidden([
+                    'password',
+                    'remember_token',
+                    'codigo_verificacion',
+                    'email_verified_at'
+                ]);
+            }
         }
 
         return response()->json(['pedidos' => $pedidos], 200);

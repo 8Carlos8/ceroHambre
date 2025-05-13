@@ -31,6 +31,8 @@ class UserController extends Controller
             // Validar también campos de donante solo si aplica
             'tipo_asociacion' => 'nullable|string|max:255',
             'logo' => 'nullable|file|image|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         //Si la validación falla, devolver un error
@@ -61,11 +63,12 @@ class UserController extends Controller
                 $logoData = file_get_contents($logo->getRealPath()); // Solo el contenido binario
             }
 
-
             Donante::create([
                 'id_usuario' => $user->id,
                 'tipo_asociacion' => $request->tipo_asociacion,
                 'logo' => $logoData,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
             ]);
         }
 

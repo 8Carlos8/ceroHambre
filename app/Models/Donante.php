@@ -15,6 +15,8 @@ class Donante extends Model
         'id_usuario',
         'tipo_asociacion',
         'logo',
+        'latitude',
+        'longitude',
     ];
 
     public function usuario()
