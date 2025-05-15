@@ -29,6 +29,7 @@ Route::post('/listaUsuarios', [UserController::class, 'listaUsuarios']);
 Route::post('/verificarCorreo', [UserController::class, 'verificarCorreo']);
 Route::post('/solicitarContraseña', [UserController::class, 'solicitarContraseña']);
 Route::post('/cambiarContraseña', [UserController::class, 'cambiarContraseña']);
+Route::post('/ubicacionesDonantes', [UserController::class, 'ubicacionesDonantes']);
 
 // Ruta para verificar el correo (sin autenticación)
 Route::get('/verify-email/{id}/{hash}', [VerificationController::class, 'verify'])

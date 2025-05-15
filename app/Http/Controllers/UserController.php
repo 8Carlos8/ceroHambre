@@ -388,6 +388,35 @@ class UserController extends Controller
         return response()->json(['message' => 'Contraseña actualizada con éxito.'], 200);
     }
 
+    // Obtener la ubicación y datos de los donantes
+    public function ubicacionesDonantes(Request $request)
+    {
+        // Validar token
+        $token = $request->input('token');
+        if (!$this->validateToken($token)) {
+            return response()->json(['message' => 'Token inválido'], 401);
+        }
+    
+        // Obtener todos los donantes con la relación del usuario
+        $donantes = Donante::with('usuario')->get();
+    
+        // Armar la respuesta con datos importantes
+        $resultado = $donantes->map(function ($donante) {
+            return [
+                'id_donante' => $donante->id,
+                'nombre' => $donante->usuario->nombre,
+                'correo' => $donante->usuario->correo,
+                'telefono' => $donante->usuario->telefono,
+                'direccion' => $donante->usuario->direccion,
+                'tipo_asociacion' => $donante->tipo_asociacion,
+                'latitude' => $donante->latitude,
+                'longitude' => $donante->longitude,
+            ];
+        });
+    
+        return response()->json(['donantes' => $resultado], 200);
+    }
+
     //Función para validar el token
     private function validateToken($token)
     {
