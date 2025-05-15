@@ -63,7 +63,4 @@ Route::post('/pedido/verPedidosFecha', [PedidoController::class, 'verPedidosFech
 Route::post('/pedido/verPedidosRangoFecha', [PedidoController::class, 'verPedidosRangoFecha']);
 Route::post('/pedido/verPedidosCantidad', [PedidoController::class, 'verPedidosCantidad']);
 Route::post('/pedido/verPedidosResenia', [PedidoController::class, 'verPedidosResenia']);
-
-
-
-
+Route::post('/pedido/agregarResenia', [PedidoController::class, 'agregarResenia']);

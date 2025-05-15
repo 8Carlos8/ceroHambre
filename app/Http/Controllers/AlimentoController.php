@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Alimento;
 use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\Storage;
 
 class AlimentoController extends Controller
 {
@@ -23,7 +24,7 @@ class AlimentoController extends Controller
         $validator = Validator::make($request->all(), [
             'id_donante' => 'required|integer',
             'nombre' => 'required|string|max:255',
-            'foto' => 'nullable|file|image|max:255',
+            'foto' => 'nullable|file|image|max:5000', // Tamaño máximo de 5MB
             'descripcion' => 'required|string|max:255',
             'cantidad' => 'required|integer',
             'fecha_vencimiento' => 'required|date',
@@ -38,16 +39,18 @@ class AlimentoController extends Controller
             ], 422);
         }
 
-        $fotoData = null;
+        $fotoUrl = null;
         if ($request->hasFile('foto')) {
             $foto = $request->file('foto');
-            $fotoData = file_get_contents($foto->getRealPath()); // Solo el contenido binario
+            $nombreFoto = time() . '_' . $foto->getClientOriginalName();
+            $foto->storeAs('public/imagenes', $nombreFoto);
+            $fotoUrl = url('storage/imagenes/' . $nombreFoto);
         }
 
         $alimento = Alimento::create([
             'id_donante' => $request->id_donante,
             'nombre' => $request->nombre,
-            'foto' => $fotoData,
+            'foto' => $fotoUrl,
             'descripcion' => $request->descripcion,
             'cantidad' => $request->cantidad,
             'fecha_vencimiento' => $request->fecha_vencimiento,
@@ -56,7 +59,7 @@ class AlimentoController extends Controller
 
         return response()->json([
             'message' => 'Alimento registrado exitosamente', 
-            'alimento' => $alimento->makeHidden('foto')
+            'alimento' => $alimento
         ], 201);
     }
 
@@ -84,11 +87,18 @@ class AlimentoController extends Controller
         $alimento->fecha_vencimiento = $request->input('fecha_vencimiento', $alimento->fecha_vencimiento);
         $alimento->estado = $request->input('estado', $alimento->estado);
 
+        // Antes de subir la nueva
+        if ($alimento->foto) {
+            $path = str_replace(url('storage'), 'public', $alimento->foto);
+                Storage::delete($path);
+        }
+
         // Si mandan nueva foto, la actualiza
         if ($request->hasFile('foto')) {
             $foto = $request->file('foto');
-            $fotoData = file_get_contents($foto->getRealPath());
-            $alimento->foto = $fotoData;
+            $nombreFoto = time() . '_' . $foto->getClientOriginalName();
+            $foto->storeAs('public/imagenes', $nombreFoto);
+            $alimento->foto = url('storage/imagenes/' . $nombreFoto);
         }
 
         $alimento->save();
@@ -130,15 +140,12 @@ class AlimentoController extends Controller
 
         $alimento = Alimento::with('donante')->find($request->input('id'));
 
-        // Convertir imagen binaria a base64 si existe
-        $fotoBase64 = $alimento->foto ? base64_encode($alimento->foto) : null;
-
         // Ocultar campo binario original
         $alimento->makeHidden('foto');
 
         return response()->json([
             'alimento' => $alimento,
-            'foto_base64' => $fotoBase64,
+            'foto_url' => $alimento->foto
         ], 200);
     }
 
@@ -154,7 +161,7 @@ class AlimentoController extends Controller
             return response()->json(['message' => 'Token inválido'], 401);
         }
 
-        $alimentos = Alimento::with('donante')->where('id_donante', $donante->id)->get();
+        $alimentos = Alimento::with('donante')->where('id_donante', $donante)->get();
 
         if ($alimentos->isEmpty()) {
             return response()->json(['message' => 'No hay alimentos registrados'], 404);
@@ -162,10 +169,9 @@ class AlimentoController extends Controller
 
         // Mapear alimentos agregando imagen en base64 y ocultando el campo binario original
         $alimentosFormateados = $alimentos->map(function ($alimento) {
-            $alimento->makeHidden('foto');
             return [
                 'alimento' => $alimento,
-                'foto_base64' => $alimento->foto ? base64_encode($alimento->foto) : null,
+                'foto_url' => $alimento->foto
             ];
         });
 
@@ -191,13 +197,21 @@ class AlimentoController extends Controller
 
         // Mapear alimentos agregando imagen en base64 y ocultando el campo binario original
         $alimentosFormateados = $alimentos->map(function ($alimento) {
-            $alimento->makeHidden('foto');
+            $alimentoArray = $alimento->toArray();
+
+            // Convertir todos los strings del alimento a UTF-8
+            array_walk_recursive($alimentoArray, function (&$value) {
+                if (is_string($value)) {
+                    $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                }
+            });
+
             return [
-                'alimento' => $alimento,
-                'foto_base64' => $alimento->foto ? base64_encode($alimento->foto) : null,
+                'alimento' => $alimentoArray,
+                'foto_url' => $alimento->foto
             ];
         });
-
+        
         return response()->json(['alimentos' => $alimentosFormateados], 200);
     }
 

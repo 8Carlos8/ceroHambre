@@ -173,7 +173,11 @@ class PedidoController extends Controller
         if (!$pedido) {
             return response()->json(['message' => 'Pedido no encontrado'], 404);
         }
-        $pedido->alimento->makeHidden('foto');
+
+        if ($pedido->alimento && $pedido->alimento->foto) {
+            $pedido->alimento->foto = url('storage/fotos_alimentos/' . $pedido->alimento->foto);
+        }
+
         $pedido->usuario->makeHidden(['password', 'remember_token', 'codigo_verificacion', 'email_verified_at']);
 
         return response()->json(['pedido' => $pedido], 200);
@@ -199,7 +203,9 @@ class PedidoController extends Controller
         // Ocultar campos en cada pedido
         foreach ($pedidos as $pedido) {
             if ($pedido->alimento) {
-                $pedido->alimento->makeHidden('foto');
+                if ($pedido->alimento && $pedido->alimento->foto) {
+                    $pedido->alimento->foto = url('storage/fotos_alimentos/' . $pedido->alimento->foto);
+                }
             }
             if ($pedido->usuario) {
                 $pedido->usuario->makeHidden([
@@ -239,7 +245,9 @@ class PedidoController extends Controller
         // Ocultar campos en cada pedido
         foreach ($pedidos as $pedido) {
             if ($pedido->alimento) {
-                $pedido->alimento->makeHidden('foto');
+                if ($pedido->alimento && $pedido->alimento->foto) {
+                    $pedido->alimento->foto = url('storage/fotos_alimentos/' . $pedido->alimento->foto);
+                }
             }
             if ($pedido->usuario) {
                 $pedido->usuario->makeHidden([
@@ -368,6 +376,48 @@ class PedidoController extends Controller
         }
 
         return response()->json(['pedidos' => $pedidos], 200);
+    }
+
+    // Función para agregar o actualizar una reseña a un pedido existente
+    public function agregarResenia(Request $request)
+    {
+        // Validar token
+        $token = $request->input('token');
+        $user = $this->getUserByToken($token);
+
+        if (!$user) {
+            return response()->json(['message' => 'Token inválido'], 401);
+        }
+
+        // Validar parámetros
+        $validator = Validator::make($request->all(), [
+            'id_pedido' => 'required|integer',
+            'resenia' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Error de validación',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $pedido = Pedido::find($request->input('id_pedido'));
+
+        if (!$pedido) {
+            return response()->json(['message' => 'Pedido no encontrado'], 404);
+        }
+
+        // Verifica que el pedido sea del usuario autenticado
+        if ($pedido->id_usuario !== $user->id) {
+            return response()->json(['message' => 'No autorizado para modificar este pedido'], 403);
+        }
+
+        $pedido->resenia = $request->input('resenia');
+        $pedido->save();
+
+        return response()->json(['message' => 'Reseña agregada correctamente', 'pedido' => $pedido], 200);
     }
 
     private function getUserByToken($token)

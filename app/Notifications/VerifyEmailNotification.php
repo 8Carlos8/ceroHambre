@@ -1,30 +1,30 @@
 <?php
+
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use App\Services\SendGridService;
 
 class VerifyEmailNotification extends Notification
 {
-    protected $verificationCode;
+    protected $codigo;
 
-    public function __construct($verificationCode)
+    public function __construct($codigo)
     {
-        $this->verificationCode = $verificationCode;
+        $this->codigo = $codigo;
     }
 
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['custom_sendgrid'];
     }
-
-    public function toMail($notifiable)
+    
+    public function toCustomSendgrid($notifiable)
     {
-        return (new MailMessage)
-                    ->subject('Código de Verificación')
-                    ->line('Tu código de verificación es: ' . $this->verificationCode)
-                    ->line('Por favor, ingresa este código en la página para completar tu registro.');
+        return [
+            'subject' => 'Código de verificación',
+            'content' => "Hola {$notifiable->nombre}, tu código de verificación es: {$this->codigo}. Gracias por registrarte en Cero Hambre."
+        ];
     }
 }

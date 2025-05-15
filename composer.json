@@ -11,6 +11,7 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
+        "sendgrid/sendgrid": "^8.1",
         "symfony/mailer": "^6.4",
         "twilio/sdk": "^8.6"
     },

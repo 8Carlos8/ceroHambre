@@ -11,6 +11,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 
 class UserController extends Controller
@@ -30,7 +31,7 @@ class UserController extends Controller
             'estado' => 'required|integer',
             // Validar también campos de donante solo si aplica
             'tipo_asociacion' => 'nullable|string|max:255',
-            'logo' => 'nullable|file|image|max:255',
+            'logo' => 'nullable|file|image|max:5000',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
@@ -57,16 +58,18 @@ class UserController extends Controller
 
         if ($request->rol == 2) { // Si el rol es de donante
 
-            $logoData = null;
+            $fotoUrl = null;
             if ($request->hasFile('logo')) {
                 $logo = $request->file('logo');
-                $logoData = file_get_contents($logo->getRealPath()); // Solo el contenido binario
+                $nombreLogo = time() . '_' . $logo->getClientOriginalName();
+                $logo->storeAs('public/imagenes/logos', $nombreLogo);
+                $fotoUrl = url('storage/imagenes/logos/' . $nombreLogo);
             }
 
             Donante::create([
                 'id_usuario' => $user->id,
                 'tipo_asociacion' => $request->tipo_asociacion,
-                'logo' => $logoData,
+                'logo' => $fotoUrl,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
             ]);
@@ -123,10 +126,18 @@ class UserController extends Controller
             $donante = Donante::where('id_usuario', $user->id)->first();
 
             if ($donante) {
+
+                // Antes de subir la nueva
+                if ($donante->logo) {
+                    $path = str_replace(url('storage'), 'public', $donante->logo);
+                    Storage::delete($path);
+                }
+                
                 if ($request->hasFile('logo')) {
                     $logo = $request->file('logo');
-                    $logoData = file_get_contents($logo->getRealPath());
-                    $donante->logo = $logoData;
+                    $nombreLogo = time() . '_' . $logo->getClientOriginalName();
+                    $logo->storeAs('public/imagenes/logos', $nombreLogo);
+                    $donante->logo = url('storage/imagenes/logos/' . $nombreLogo);
                 }
 
                 if ($request->filled('tipo_asociacion')) {
@@ -299,7 +310,7 @@ class UserController extends Controller
             'codigo_verificacion' => 'required|numeric',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('correo', $request->correo)->first();
 
         if (!$user) {
             return response()->json(['message' => 'Usuario no encontrado.'], 404);
